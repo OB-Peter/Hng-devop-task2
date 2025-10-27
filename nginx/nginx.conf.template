@@ -1,63 +1,29 @@
-# Nginx Configuration for Blue/Green Deployment
+# nginx.conf.template
 
-events {
-    worker_connections 1024;
+upstream backend {
+    server app_blue:3000 max_fails=2 fail_timeout=5s;
+    server app_green:3000 backup;
 }
 
-http {
-    # Upstream configuration for Blue/Green deployment
-    upstream backend {
-        # Primary server (active pool - Blue by default)
-        server app_blue:${BLUE_PORT} max_fails=1 fail_timeout=5s;
+server {
+    listen 80;
 
-        # Backup server (standby pool - Green)
-        server app_green:${GREEN_PORT} backup;
-    }
-
-    server {
-        listen ${NGINX_PORT};
-        server_name localhost;
-
-        # Proxy settings for fast failover
-        proxy_connect_timeout 2s;
-        proxy_send_timeout 5s;
-        proxy_read_timeout 5s;
-
-        # Retry policy for errors, timeouts, and 5xx responses
-        proxy_next_upstream error timeout http_500 http_502 http_503 http_504;
-        proxy_next_upstream_tries 2;
-        proxy_next_upstream_timeout 10s;
-
-        # Forward original headers and preserve app headers
+    location / {
+        proxy_pass http://backend;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
 
-        # Pass app headers to clients
-        proxy_pass_header X-App-Pool;
-        proxy_pass_header X-Release-Id;
+        # Failover handling
+        proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
+        proxy_next_upstream_tries 2;
+    }
 
-        # Main app endpoint
-        location / {
-            proxy_pass http://backend;
-        }
-
-        # Version endpoint
-        location /version {
-            proxy_pass http://backend/version;
-        }
-
-        # Health endpoint
-        location /healthz {
-            proxy_pass http://backend/healthz;
-        }
-
-        # Nginx health check
-        location /nginx-health {
-            access_log off;
-            return 200 "healthy\n";
-            add_header Content-Type text/plain;
-        }
+    # Optional: Health endpoint
+    location /healthz {
+        proxy_pass http://backend/healthz;
     }
 }
