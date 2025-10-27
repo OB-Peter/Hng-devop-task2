@@ -1,0 +1,102 @@
+Part B: DevOps Research Task – Infrastructure Setup & CLI Flow for Backend.im
+1. Proposed Architecture & Reasoning
+
+The goal is a one-command deployment flow from local code to live backend on Backend.im, using mostly open-source tools. The architecture should be lightweight, modular, and require minimal manual configuration.
+
+High-Level Architecture:
+
+[Local Dev Machine]
+       |
+       |  (Claude Code CLI / AI tool triggers)
+       v
+[CI/CD Orchestrator / Local CLI Scripts]
+       |
+       v
+[Dockerized App + Nginx Proxy / Reverse Proxy]
+       |
+       v
+[Backend.im Deployment Environment]
+       |
+       v
+[Live Application]
+
+
+Reasoning:
+
+Using Docker ensures consistent environment regardless of local machine.
+
+Nginx handles routing and reverse proxying for multiple services.
+
+The Claude Code CLI acts as the entry point for developers to push and deploy code.
+
+Optional GitOps-style workflow using a simple Git repository to track deployments (still minimal setup).
+
+2. Tools or Frameworks
+Tool/Framework	Purpose	Why
+Docker / docker-compose	Containerize backend services	Consistent environments, widely used, easy to integrate
+Nginx	Reverse proxy & routing	Lightweight, simple templating, handles multiple apps
+Claude Code CLI	Deployment trigger	Primary interface for devs to push code
+Git	Version control	Standard in dev workflows; optionally triggers deployments
+Open-source CI/CD tools (like Drone CI, GitHub Actions)	Automate build & deployment if desired	Lightweight, integrates with CLI tools, free tiers available
+Env files (.env)	Configuration	Keeps secrets/config separate and reusable
+Bash scripts / Makefile	Local deployment automation	Simplifies “one-command” flow
+3. Local Setup Flow
+
+Step-by-step flow for a developer:
+
+Clone repo: git clone https://github.com/username/repo.git
+
+Install prerequisites: Docker, Docker Compose, Claude Code CLI
+
+Configure environment: Copy .env.example to .env and set values
+
+Build & test locally:
+
+docker-compose up --build
+
+
+Run AI CLI deployment:
+
+claude-code deploy
+
+
+This triggers Docker build, pushes container, updates Nginx config if necessary, and deploys to Backend.im
+
+Verify deployment: Access live app via assigned URL
+
+4. High-Level Deployment Sequence Diagram
+Developer
+   |
+   | claude-code deploy
+   v
+Claude Code CLI
+   |
+   | Calls local Docker build / package
+   v
+Docker Compose / Build Scripts
+   |
+   | Build image & push container to Backend.im
+   v
+Backend.im Environment
+   |
+   | Update Nginx routing / reverse proxy
+   v
+Live Application
+
+5. Where Minimal Custom Code is Required
+
+CLI integration: Minimal wrapper script to call Docker builds and trigger deployment
+
+Nginx templating: Simple script to generate configs for each service
+
+Env management: Simple parsing script to inject .env values into containers
+
+Optional post-deploy health checks: small script to verify deployment status
+
+6. Deliverables Checklist
+
+Google Doc containing all the above research
+
+Link accessible to anyone with the link
+
+General, clean explanations; diagrams; and reasoning for each choice

@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
   app_blue:
     image: ${BLUE_IMAGE}
@@ -5,6 +7,7 @@ services:
     environment:
       - APP_POOL=blue
       - RELEASE_ID=${RELEASE_ID_BLUE}
+      - PORT=${PORT}
     ports:
       - "${BLUE_PORT}:3000"
     networks:
@@ -16,23 +19,29 @@ services:
     environment:
       - APP_POOL=green
       - RELEASE_ID=${RELEASE_ID_GREEN}
+      - PORT=${PORT}
     ports:
       - "${GREEN_PORT}:3000"
     networks:
       - app_network
 
   nginx_proxy:
-    build: ./nginx
+    image: nginx:latest
     container_name: nginx_proxy
     ports:
       - "${NGINX_PORT}:80"
     environment:
       - ACTIVE_POOL=${ACTIVE_POOL}
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/entrypoint.sh:/etc/nginx/entrypoint.sh
     depends_on:
       - app_blue
       - app_green
     networks:
       - app_network
+    entrypoint: ["/bin/bash", "/etc/nginx/entrypoint.sh"]
 
 networks:
   app_network:
+    driver: bridge
